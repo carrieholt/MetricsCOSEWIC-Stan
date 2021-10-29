@@ -12,9 +12,10 @@ Next steps:
 
 (3) Try alternative distributions for prior on residual variance, e.g., exponential (possibly uniform, half-cauchy and/or half normal), and evaluate impacts on posterior distribution of % change
 
-(4) Consider robust regression by changing normal distribution in likelihood to a t-distribution in the Stan code
+(4) Consider setting priors based on the prior predictive distributions (e.g., as described by Wesner and Pomeranz 2021, https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecs2.3739)
 
-(5) Revise Stan code to estimate missing abundance values in some years
+(5) Consider robust regression by changing normal distribution in likelihood to a t-distribution in the Stan code
 
-(6) Evaluate impacts of missing values at beginning, throughout, and end of the time-series on posterior distribution of % change  (in simulation)
+(6) Revise Stan code to estimate missing abundance values in some years
 
+(7) Evaluate impacts of missing values at beginning, throughout, and end of the time-series on posterior distribution of % change  (in simulation)
