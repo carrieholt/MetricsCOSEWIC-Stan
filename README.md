@@ -16,6 +16,6 @@ Next steps:
 
 (5) Consider robust regression by changing normal distribution in likelihood to a t-distribution in the Stan code
 
-(6) Revise Stan code to estimate missing abundance values in some years
+(6) Run Stan through the wrapper brms directly from R, and then revise Stan code to estimate missing abundance values in some years
 
 (7) Evaluate impacts of missing values at beginning, throughout, and end of the time-series on posterior distribution of % change  (in simulation)
