@@ -18,7 +18,7 @@ Next steps:
 
 (6) Consider robust regression by changing normal distribution in likelihood to a t-distribution in the Stan code
 
-(7) Add stan code to R package
+(7) Add stan code to R package (see example here: https://github.com/luke-a-rogers/mmmstan)
 
 (8) Run Stan through the wrapper brms directly from R, and then 
 
