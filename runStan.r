@@ -11,6 +11,7 @@ library(dplyr)
 library(tidyr)
 library(rstan)
 library(devtools)
+library(ggplot2)
 install_github("SOLV-Code/MetricsCOSEWIC", dependencies = TRUE,
                build_vignettes = FALSE)
 library(MetricsCOSEWIC)
@@ -112,7 +113,7 @@ FitsDF <- data.frame(Year = data.in$Year, R = data.in$logAbd, Fit = logAbd_Fits_
                      Pred_low = logAbd_Preds_Stan$X2.5.)
 
 # get  posteriors
-fit_values <- extract(stan_fit)
+fit_values <- rstan::extract(stan_fit)
 intercept_Post <- fit_values$intercept
 slope_Post <- fit_values$slope
 
