@@ -74,9 +74,13 @@ Sig_Gam_Dist <-  0.00001
 # Set up data inputs for Stan
 #==============================================================================
 
+# test for missing value codes
+
+data.in$logAbd[c(2)] <- NA
+
 data <- list()
 data$Year <- 0:(length(data.in$Year)-1)
-data$logAbd <- data.in$logAbd
+data$logAbd <- replace_na(data.in$logAbd, 99) #data.in$logAbd
 data$N <- dim(data.in)[1]
 data$intercept_mean <- intercept_mean
 data$Sig_Gam_Dist <- Sig_Gam_Dist
@@ -84,17 +88,30 @@ data$slope_mean <- slope_mean
 data$intercept_sig <- intercept_sig
 data$slope_sig <- slope_sig
 
+data$logAbd_obs <- as.numeric(!is.na(data.in$logAbd))
 
+                            
 #==============================================================================
 # Run Stan
 #==============================================================================
 
 stan_fit <- stan(file = 'linear.stan', data = data, iter = 10000,
-                 chains = 3,  control = list(adapt_delta = 0.95))
+                 chains = 6,  control = list(adapt_delta = 0.95))
+
+#  Does this work with no missing values?
+stan_fit <- stan(file = 'linear-missingValuesv2.stan', data = data, iter = 10000,
+                 chains = 6,  control = list(adapt_delta = 0.95))
 
 #==============================================================================
 # Pull out parameter estimates
 #==============================================================================
+
+#Plot the distribution for missing values, just to check (only worksfor 1 NA)
+draws_logAbdmis <-
+  as.matrix(stan_fit, pars = "logAbd_Pred")[ , is.na(data.in$logAbd)]
+df<-data.frame(data=draws_logAbdmis)
+ggplot(df, aes(data)) + geom_density()
+
 
 All_Ests <- data.frame(summary(stan_fit)$summary)
 All_Ests$Param <- row.names(All_Ests)
@@ -112,6 +129,7 @@ FitsDF <- data.frame(Year = data.in$Year, R = data.in$logAbd, Fit = logAbd_Fits_
                      Pred_up = logAbd_Preds_Stan$X97.5.,
                      Pred_low = logAbd_Preds_Stan$X2.5.)
 
+
 # get  posteriors
 fit_values <- rstan::extract(stan_fit)
 intercept_Post <- fit_values$intercept
@@ -124,7 +142,6 @@ out$Fits <- FitsDF
 out$Ests <- All_Ests
 out$intercept_Post <- intercept_Post
 out$slope_Post <- slope_Post
-out
 
 # Calculate % change from the fit at the start and end of the 13 years
 mcmc.samples <- data.frame(int=out$intercept_Post, slope=out$slope_Post,
