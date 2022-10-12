@@ -76,7 +76,7 @@ Sig_Gam_Dist <-  0.00001
 
 # test for missing value codes
 
-data.in$logAbd[c(2)] <- NA
+#data.in$logAbd[c(2)] <- NA
 
 data <- list()
 data$Year <- 0:(length(data.in$Year)-1)
@@ -95,10 +95,10 @@ data$logAbd_obs <- as.numeric(!is.na(data.in$logAbd))
 # Run Stan
 #==============================================================================
 
-stan_fit <- stan(file = 'linear.stan', data = data, iter = 10000,
-                 chains = 6,  control = list(adapt_delta = 0.95))
+# stan_fit <- stan(file = 'linear.stan', data = data, iter = 10000,
+#                  chains = 6,  control = list(adapt_delta = 0.95))
 
-#  Does this work with no missing values?
+
 stan_fit <- stan(file = 'linear-missingValuesv2.stan', data = data, iter = 10000,
                  chains = 6,  control = list(adapt_delta = 0.95))
 
@@ -106,11 +106,17 @@ stan_fit <- stan(file = 'linear-missingValuesv2.stan', data = data, iter = 10000
 # Pull out parameter estimates
 #==============================================================================
 
-#Plot the distribution for missing values, just to check (only worksfor 1 NA)
-draws_logAbdmis <-
-  as.matrix(stan_fit, pars = "logAbd_Pred")[ , is.na(data.in$logAbd)]
-df<-data.frame(data=draws_logAbdmis)
-ggplot(df, aes(data)) + geom_density()
+# #Plot the distribution for missing values, just to check (only worksfor 1 NA)
+# draws_logAbdmis <-
+#   as.matrix(stan_fit, pars = "logAbd_Pred")[ , is.na(data.in$logAbd)]
+# df<-data.frame(data=draws_logAbdmis)
+# ggplot(df, aes(data)) + geom_density()
+
+
+if (max(bayesplot::rhat(stan_fit)) > 1.02) {
+  convergence.flag<- TRUE
+  print("Convergence flag")
+}
 
 
 All_Ests <- data.frame(summary(stan_fit)$summary)
@@ -177,6 +183,14 @@ probdecl.50 <-
   sum(mcmc.samples[,"Perc_Change"] <= -50) / dim(mcmc.samples)[1] *100
 probdecl.70 <-
   sum(mcmc.samples[,"Perc_Change"] <= -70) / dim(mcmc.samples)[1] *100
+
+
+# Next,Merge my MetricsCOSEWIC temp branch with main and push
+# reload package and make sure it works...!
+# then create outlist here like for JAGS, with convergence flag
+# then add stan code to R package
+# then re-examine priors
+
 
 #===============================================================================
 # End of Stan output
