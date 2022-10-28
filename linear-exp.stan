@@ -10,7 +10,8 @@ int<lower=0, upper=1> logAbd_obs[N];  // missingness indicator for Y
 vector[N] Year;   // X value
 real intercept_mean;
 real intercept_sig;
-real Sig_Gam_Dist;
+//real Sig_Gam_Dist;
+real exp_rate;
 real slope_mean;
 real slope_sig;
 }
@@ -45,22 +46,33 @@ real logAbd_miss[nmiss]; //estimate missing values
 }
 
 transformed parameters {
-  real logAbd_Pred_sim[N];  // simulated data based on model
-  logAbd_Pred_sim[ns] = logAbd[ns];  // where data are observed
-  logAbd_Pred_sim[ns_miss] = logAbd_miss; // where data are missing
+  real logAbd_sim[N];  // simulated data based on model
+  logAbd_sim[ns] = logAbd[ns];  // where data are observed
+  logAbd_sim[ns_miss] = logAbd_miss; // where data are missing
 }
 model {
-logAbd_Pred_sim ~ normal(intercept + slope * Year, sigma); // likelihood
+//logAbd_sim ~ normal(intercept + slope * Year, sigma); // likelihood
+for(i in 1:N){
+  target += normal_lpdf(logAbd_sim[i] | intercept + slope * Year[i], sigma);
+}
 
-//Priors
+// PRIORS
 // normal prior on intercept
-intercept ~ normal( intercept_mean, intercept_sig);
+//intercept ~ normal( intercept_mean, intercept_sig);
+target += normal_lpdf(intercept | intercept_mean, intercept_sig);
+// exponential on variance (sigma^2), need jacobian adjustment
+//sigma ~ exponential(exp_rate);
+target += exponential_lpdf( sigma | exp_rate);
+
 // inverse gamma on variance (sigma^2), need jacobian adjustment
-pow(sigma, 2) ~ inv_gamma(Sig_Gam_Dist, Sig_Gam_Dist);
-// Jacobian adjustment
-target += log(2*sigma); // log|x^2 d/dx|
+// pow(sigma, 2) ~ inv_gamma(Sig_Gam_Dist, Sig_Gam_Dist);
+// Jacobian adjustment needed here
+//target += log(2*sigma); // log|x^2 d/dx|
+
 // normal prior on slope
-slope ~ normal( slope_mean, slope_sig);
+//slope ~ normal( slope_mean, slope_sig);
+target += normal_lpdf( slope | slope_mean, slope_sig);
+
 }
 
 
@@ -71,6 +83,16 @@ generated quantities {
   for (i in 1:N) {
     logAbd_Pred[i] = normal_rng(logAbd_Fit_out[i], sigma);
   }
+  
+  real intercept_pp = normal_rng(intercept_mean, intercept_sig);
+  real slope_pp = normal_rng(slope_mean, slope_sig);
+  real sigma_pp = exponential_rng(exp_rate);
+  array[N] real logAbd_PriorPred = normal_rng(intercept_pp + slope_pp * Year, sigma_pp);
+  //vector[N] logAbd_PriorPred;
+  // for (i in 1:N) {
+  //  logAbd_PriorPred[i] = normal_rng(intercept_pp + slope_pp * Year);
+  //}
+
 }
 
 

@@ -1,0 +1,78 @@
+---
+title: "Inverse gamma priors"
+author: "Carrie Holt"
+date: "2022-10-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Choice of scale and rate parameters for Inverse Gamma prior on residual variance
+
+For the COSEWIC Metrics R package, the initial choice of scale and rate parameters for inverse gamma distribution for priors on residual variance was 0.0001.  However, as shown below, this choice of priors is associated with a large probability density at very low sigma values (<0.1). 
+
+A more reasonable choice of scale and rate parameter is 0.1 where the bulk of the distribution of residual sigma is between 0.1 and 1.5.
+
+Note, an exponential distribution is the default distribution for priors of sigma in rstanarm (Gelman), though Wesner and Pomerenz (2021) suggest that inverse gamma distributions may improve model efficiency. See <https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecs2.3739>.
+
+
+```{r plotInverseGamma, echo=FALSE}
+library(invgamma)
+library(viridis)
+
+# Functions
+t_col <- function(color, percent = 50, name = NULL) {
+  #      color = color name
+  #    percent = % transparency
+  #       name = an optional name for the color
+  
+  ## Get RGB values for named color
+  rgb.val <- col2rgb(color)
+  
+  ## Make new color using input color as base and alpha set by transparency
+  t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+               max = 255,
+               alpha = (100 - percent) * 255 / 100,
+               names = name)
+  
+  ## Save the color
+  invisible(t.col)
+}
+
+test <- seq(0.00001,9,len=10000)
+
+plot(x=test, y=abs(dcauchy(test,0,1)), type="n", ylab="Probability density", 
+     xlab="Sigma" , ylim=c(0,0.8), xlim=c(0,2.5))
+cols<-viridis(4, alpha=0.9)
+
+shape<-rate<-0.0001
+lines(sqrt(test), sqrt(dinvgamma(test,shape=shape, rate=rate)), lwd=4, 
+      col=t_col(color=cols[1], percent=90))
+shape<-rate<-0.001
+lines(sqrt(test), sqrt(dinvgamma(test,shape=shape, rate=rate)), lwd=4, 
+      col=t_col(color=cols[1], percent=70))
+shape<-rate<-0.01
+lines(sqrt(test), sqrt(dinvgamma(test,shape=shape, rate=rate)), lwd=4, 
+      col=t_col(color=cols[1], percent=50))
+shape<-rate<-0.1
+lines(sqrt(test), sqrt(dinvgamma(test,shape=shape, rate=rate)), lwd=4, 
+      col=t_col(color=cols[1], percent=30))
+shape<-rate<-1
+lines(sqrt(test), sqrt(dinvgamma(test,shape=shape, rate=rate)), lwd=4, 
+      col=t_col(color=cols[1], percent=10))
+
+legend(1.5, 0.8, legend=c("scale,rate = 1", "scale,rate = 0.1", 
+                       "scale,rate = 0.01", "scale,rate = 0.001", 
+                       "scale,rate = 0.0001"),
+       col=c(t_col(color=cols[1], percent=10), t_col(color=cols[1], percent=30), 
+             t_col(color=cols[1], percent=50), t_col(color=cols[1], percent=70), 
+             t_col(color=cols[1], percent=90)), lty=1, cex=0.8, box.lty=0)
+
+
+title("Probabilty density for sigma with an Inverse Gamma distributed 
+      variance and various scale and rate parameters", cex.main=0.8)
+
+```
+
