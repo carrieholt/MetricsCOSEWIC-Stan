@@ -513,14 +513,8 @@ if(BF){
 }
 
 # Next
-# I standardized the log-Abd data, so that prior sigmas are in units sds
-# when these are vague (sigma = 2.5 SDs), then results simlar to JAGS/MLE
-# doc this in rmd?
-# (2) add issue with suggested change to inverse gamma
-# (3) make rmd file ? 
-# (4) clean up code/files and push to git
-# (4) add cumulative plot like Atlantic salmon
-# (5) add stan code to R package
-#
+# (1) add cumulative plot like Atlantic salmon
+# (2) add stan code to R package
+
 
 

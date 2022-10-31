@@ -1,0 +1,455 @@
+---
+title: "Prior  Choice"
+author: "Carrie Holt"
+date: "2022-10-31"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE)
+knitr::opts_knit$set(root.dir = here::here())
+#https://stackoverflow.com/questions/27910312/pandoc-and-rmarkdown-cant-fetch-an-image-one-level-above-a-rmarkdown-document
+
+```
+
+```{r packages, message=FALSE, warning=FALSE, include=FALSE}
+
+# Package dependencies
+library(dplyr)
+library(tidyr)
+library(rstan)
+library(devtools)
+library(ggplot2)
+library(ggridges)
+library(bayesplot)
+library(RColorBrewer)
+library(gridExtra)
+#library(shinystan)
+library(bridgesampling)
+library(forcats)
+install_github("SOLV-Code/MetricsCOSEWIC", dependencies = TRUE,
+               build_vignettes = FALSE)
+library(MetricsCOSEWIC)
+source(here::here("runStan.r"))
+
+```
+
+We evaluated the sensitivity of the choice of estimation methods and model priors on (a) estimates of declines rates over 3 generations and (b) the probabilities of exceeding decline thresholds within COSEWIC Criterion A (30%, 50% and 70% declines).
+
+Within the Metrics-COSWEIC R package, the original priors on the slope, intercept and residual sigma were applied to the unstandardized (raw) log(abundance) time-series. Specifically, these were:
+
+- Slope: Normally distributed with a mean equal to zero and standard deviation equal to maximum log(abundance)/ length of the time-series
+
+- Y-intercept: Normally distributed with a mean equal to the mean log(abundances) and standard deviation equal to the maximum log(abundances)
+
+- Residual variance: Inverse gamma distributed with scale and rate parameters equal to 0.0001
+
+### Sensitivity to estimation platform
+
+First, for an example stock, estimates of decline rates from the Metrics-COSEWIC package using MLE, Jags, and rstanarm estimation methods were compared against those coded in stan directly using the same priors, with one exception. We applied a prior on the residual variance that was inverse gamma distributed with scale and rate parameters equal to 0.1 instead of 0.0001, which has a higher probability density at plausible sigma values, in the range of 0.1-1.5. See <https://github.com/carrieholt/MetricsCOSEWIC-Stan/blob/main/Rmd/InvGamma.Rmd>.
+
+The data for this example are for Fraser River Sockeye Salmon and are available from the Metric-COSEWIC package. Here we've chosen stock 18, an example for which decline estimates varied among estimation methods in preliminary analyses.
+
+```{r data, echo=FALSE}
+
+# Example data for 22 sockeye stocks are included in MetricsCOSEWIC package
+# provided in SR_Sample
+# Look at spawners data over the most recent 13 years (3 gens + 1year),
+# 2005-2017
+
+stk <- du.label <- "Stock18"#"Stock2"#"Stock3"
+
+# Look at data
+SR_Sample %>%  dplyr::filter(Stock == stk) %>% select(Year,Spn) %>% ggplot( aes(Year,log(Spn))) + geom_point()
+
+# Choose the most recent 3 generations
+gen <- 4 # Number of years in a generation
+yrs.window <- (3 * gen) +1
+calc.year <- 2017
+
+
+
+```
+
+
+```{r modelRun, message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
+
+# Run MLE, JAGS, rstanarm through Metrics-COSEWIC packages (inputs raw Spawners)
+  
+package.df <- SR_Sample %>%  dplyr::filter(Stock == stk) %>% select(Year,Spn)
+
+fit.out <- comparePercChange(du.label = stk,
+                               du.df = package.df,
+                               yrs.window = yrs.window ,
+                               calc.yr = calc.year,
+                               samples.out = TRUE,
+                               plot.pattern = FALSE,
+                               plot.posteriors = FALSE,
+                               plot.boxes  = FALSE,
+                               plot.fitted = FALSE,
+                               print.mcmc = FALSE,
+                               do.rstanarm = TRUE)
+
+
+# Run stan
+# For Stan, shorten data set to years used first, and log abundances
+du.df.long <- SR_Sample %>% select(Stock,Year,Spn) %>% 
+  rename(DU = Stock, Abd = Spn)
+du.df.long <- du.df.long %>% filter(DU==stk) %>% mutate(logAbd=log(Abd)) 
+du.df <- du.df.long %>% filter(Year > (calc.year - yrs.window) & 
+                                 Year <= calc.year)
+
+
+run2 <- run.stan(du.label=stk, du.df=du.df, yrs.window=yrs.window, 
+                 standardize.data = FALSE,  scenario.name = "Unstandardized",
+                 prior_sigma_type = "invgamma", mcmc.plot = TRUE)
+
+run2.df <- data.frame(Value=run2$samples$Perc_Change, PriorSigma=2.5, 
+                      std.data=0, VarPrior="InvGamma")
+
+if (stk == "Stock18") maxy <- 105
+if (stk != "Stock18") maxy <- 200
+
+run2.df$method <- "stan"
+MethodsCompareDF <- run2.df %>% 
+  add_row(Value = fit.out$samples.jags[,"Perc_Change"], PriorSigma=0, 
+          std.data=0,VarPrior="InvGamma", method="JAGS") %>% 
+  add_row(Value = fit.out$samples.rstanarm[,"Perc_Change"], PriorSigma=0, 
+          std.data=0,VarPrior="InvGamma", method="rstanarm") %>% 
+  add_row(Value = rep(fit.out$Summary["MLE",]["pchange"],500), PriorSigma=0, 
+          std.data=0, VarPrior="InvGamma", method="MLE")
+
+# Change order of methods for plotting
+MethodsCompareDF <- MethodsCompareDF %>% 
+  mutate(method = fct_relevel(as.factor(method), "MLE", "JAGS", "rstanarm", 
+                              "stan"))
+
+text.df <- data.frame(Value=rep(c(-70,-50,-30),3), 
+                      lab = c(round(fit.out$ProbDecl,1)[,2], 
+                              round(fit.out$Probdecl.rstan,1)[,2],
+                              round(run2$probdecl, 1)[,2]), 
+                      method=c(rep("JAGS",3), rep("rstanarm",3), rep("stan",3)))
+lab.df <- data.frame(Value=maxy, method="MLE", duName=du.df$DU[1])
+
+
+p7 <- ggplot(MethodsCompareDF, aes(x=as.factor(method), y=Value, 
+                                    fill=as.factor(method))) + 
+  geom_hline(yintercept=-30, linetype="dashed", colour="light grey") + 
+  geom_hline(yintercept=-50, linetype="dashed", colour="dark grey") + 
+  geom_hline(yintercept=-70, linetype="dashed", colour="black") +  
+  geom_violin(alpha=0.3, trim=TRUE, scale="width") + 
+  geom_boxplot(width=0.1) +
+  ggtitle("Posterior distributions of percent change", 
+          "for various estimation methods (and probabitlity 
+          below thresholds)") +
+  theme_minimal() + 
+  xlab(element_blank()) + 
+  ylab("Perent change over three generations") + 
+  theme(legend.position="none") +
+  geom_text(aes(label=lab), data=text.df, colour=grey(0.5), nudge_x=-0.2, 
+            nudge_y=3, size=2.8) + 
+  ylim(-100,maxy) + 
+  geom_label(data=lab.df, aes(label=duName), nudge_x=-0.3, 
+             label.padding = unit(0.55, "lines"),  
+             fill="white", label.size=0, size=4)
+
+p7
+# library(knitr)
+# kable(round(run1$probdecl, digits=1))
+
+```
+
+In this case, decline estimates for rstanarm (as implemented in Metrics-COSEWIC package) differ from JAGS. Rstanarm uses a default prior on the R2 value between dependent and independent variables, which differs from the assumption of normal priors used in the Jags and stan models. This implementation of rstanarm is not recommended. Results for JAGS and stan implementation were similar; stan is used for further sensitivity analyses below. Model convergence was evaluated from Rhat values and visual inspection of trace plots and posteriors distributions. 
+
+For each implementation of the stan model, the prior predictive distribution was derived, where the model was run with the priors alone ignoring the impact of data. This allows users to assess if priors cover plausible ranges of the dependent variable, as described by Wesner and Pomeranz 2021 <https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecs2.3739>. We also generated the posterior predictive distribution by simulating additional data sets from the posteriors to evaluate how this distribution compared to the observed data.
+
+
+```{r priorPred, eval=FALSE, fig.align="center", fig.cap="Prior predictive check", include=FALSE, out.width="50%"}
+# file.name <- ("Stock18/Unstandardized/prior_predictive_check.png")
+# print(file.name)
+file.name <- here::here("Stock18", "Unstandardized", "prior_predictive_check.png")
+print(file.name)
+knitr::include_graphics(file.name)
+
+
+```
+
+
+```{r postPred, eval=FALSE, out.width="0.3\\linewidth", include=TRUE, fig.align="center", fig.cap=c("Posterior predictive distribution"), echo=FALSE}
+# knitr::include_graphics("/Stock18/Unstandardized/posterior_predictive_check.png")
+# knitr::opts_knit$set(root.dir = here::here("Stock18/Unstandardized"))
+# getwd()
+file.name <- here::here("Stock18", "Unstandardized", "posterior_predictive_check.png")
+print(file.name)knitr::include_graphics(file.name)
+
+
+```
+
+
+
+### Sensitivity to priors within stan
+
+Next, three sets of assumptions about priors were evaluated using the stan model for estimation. as described in more detail below:
+(1) normal priors on slope and Y-intercept derived from unstandardized data (as specified above) versus those derived from centered and standardized data using default guidelines on normal priors from Gelman (see <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations>), 
+(2) inverse gamma priors on residual variance compared with exponential priors on residual sigma, as recommended for rstanarm (see <https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html>), and 
+(3) differences in SDs for the normally distributed priors on slope and Y-intercept, when using centered and standardized data, as described by Gelman (see  <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations>).
+
+
+### (1) Sensitivity to priors on standardized data
+
+For priors applied to centered and standardized data, normal priors were applied with a mean equal to zero and sigma equal to 2.5, as suggested by Gelman (see  <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations#scaling>). Decline estimates were not sensitive to centering and standardizing log(abundance) time-series in our example stock. Centering and standardizing is considered a best practice, and was used for subsequent analyses.
+
+```{r stdPrior, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Run STAN with standardized data and associated priors
+run1 <- run.stan(du.label=stk, du.df=du.df, yrs.window=yrs.window, 
+                 standardize.data = TRUE,  scenario.name = "Standardized", 
+                 prior_sigma_type = "invgamma", mcmc.plot = FALSE)
+
+
+run1.df <- data.frame(Value=run1$samples$Perc_Change, PriorSigma=2.5, 
+                      std.data=1, VarPrior="InvGamma")
+runStd.df <- run1.df %>% bind_rows(run2.df)
+
+#=============================================================================
+# Plot posterior estimates of percent change: standardization of data
+#=============================================================================
+
+text.df <- data.frame(std.data=c(0,0,0,1,1,1), Value=rep(c(-70, -50,-30),2), 
+                     lab=c(round(run1$probdecl, 1)[,2], 
+                             round(run2$probdecl, 1)[,2]))
+lab.df <- data.frame(Value=105, std.data=as.factor(0), duName=du.df$DU[1])
+
+
+p1 <- ggplot(runStd.df, (aes(x=as.factor(std.data), y=Value, 
+                             fill = as.factor(std.data)))) + 
+  geom_hline(yintercept=-30, linetype="dashed", colour="light grey") + 
+  geom_hline(yintercept=-50, linetype="dashed", colour="dark grey") + 
+  geom_hline(yintercept=-70, linetype="dashed", colour="black") +  
+  geom_violin(alpha=0.3, trim=FALSE) + 
+  geom_boxplot(width=0.1) +
+  ggtitle("Posterior distributions of % change", 
+          "for original priors on unstandarized data vs.
+          those on standardized data (and probabitlity 
+          below thresholds)") +
+  theme_minimal() + 
+  xlab(element_blank()) +
+  scale_x_discrete(labels=c("0"="Unstandardized","1"="Standardized")) +
+  ylab("Perent change over three generations") + 
+  theme(legend.position="none") + 
+  scale_fill_brewer(element_blank(), palette="Dark2") + 
+  geom_text(aes(label=lab), data=text.df, colour=grey(0.5), nudge_x=-0.1, 
+            nudge_y=4, size=2.8) + 
+  ylim(-100,105) + 
+  geom_label(data=lab.df, aes(label=duName), nudge_x=-0.4, 
+                              label.padding = unit(0.55, "lines"),  
+                              fill="white", label.size=0, size=3)
+
+  
+
+
+#=============================================================================
+# Plot time series with  percent change: standardization of data
+#=============================================================================
+
+p2 <- ggplot(du.df.long, aes(Year,logAbd)) + geom_point() + 
+  geom_segment(x= calc.year - yrs.window, y = median(run1$samples$Fit_Start),
+               xend=calc.year, yend = median(run1$samples$Fit_End), 
+               colour=brewer.pal(n = 8, name = "Dark2")[2], size=1.5) + 
+  geom_segment(x= calc.year - yrs.window, y = median(run2$samples$Fit_Start),
+               xend=calc.year, yend = median(run2$samples$Fit_End), 
+               colour=brewer.pal(n = 8, name = "Dark2")[1], size=1.5)+ 
+  ggtitle("Time-series of log(abundances)", 
+          "with linear declines over most recent three 
+          generations for models with the 
+          original priors on unstandarized data
+          vs those on standardized data") + 
+  ylab("Log(abundances)") + 
+  xlim(max(du.df.long$Year) - yrs.window, max(du.df.long$Year))
+# note, factors are listed in this order: "Unstandardized", "Standardized"
+
+grid.arrange(p1,p2, nrow=1)
+
+```
+
+### (2) Sensitivty to distribution of priors on residuals
+
+Sensitivity of declines estimates were evaluated to the choice of priors on residuals:  inverse gamma priors on residual variance versus exponential priors on residual sigma.
+
+Note, Wesner and Pomeranz (2021) suggest than an inverse gamma distribution on the variance rather than the exponential prior on the standard deviation can improve efficiency of the model, <https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecs2.3739>.
+
+The choice between these two priors had an undetectable impact on the posterior decline estimate.
+
+```{r residualPrior, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+
+# Run STAN with standardized data and exponetial(1) prior on residual SD
+run3 <- run.stan(du.label=stk, du.df=du.df, yrs.window=yrs.window, 
+                 standardize.data = TRUE,  
+                 scenario.name = "Standardized-ExpSigma", 
+                 prior_sigma_type = "exp", mcmc.plot = FALSE)
+run3.df <- data.frame(Value=run3$samples$Perc_Change, PriorSigma=2.5, 
+                      std.data=1, VarPrior="Exp")
+runSigType.df <- run1.df %>% bind_rows(run3.df)
+
+#=============================================================================
+# Plot posterior estimates of percent change: type of sigma prior
+#=============================================================================
+text.df <- data.frame(VarPrior=c(rep("InvGamma",3),rep("Exp",3)), 
+                      Value=rep(c(-70, -50,-30),2), 
+                      lab=c(round(run1$probdecl, 1)[,2], 
+                            round(run3$probdecl, 1)[,2]))
+lab.df <- data.frame(Value=105, VarPrior="Exp", duName=du.df$DU[1])
+
+p3 <- ggplot(runSigType.df, (aes(x=as.factor(VarPrior), y=Value, 
+                                 fill=as.factor(VarPrior)))) + 
+  # geom_hline(yintercept=-30, linetype="dashed", colour="yellow") + 
+  # geom_hline(yintercept=-50, linetype="dashed", colour="orange") + 
+  # geom_hline(yintercept=-70, linetype="dashed", colour="red") +  
+  geom_hline(yintercept=-30, linetype="dashed", colour="light grey") + 
+  geom_hline(yintercept=-50, linetype="dashed", colour="dark grey") + 
+  geom_hline(yintercept=-70, linetype="dashed", colour="black") +  
+  geom_violin(alpha=0.3, trim=FALSE) + 
+  geom_boxplot(width=0.1) +
+  ggtitle("Posterior distributions of % change", 
+          "for exponential priors on sigma and inverse 
+          gamma on variance (and probabitlity 
+          below thresholds)") +
+  theme_minimal() + 
+  xlab(element_blank()) + 
+  ylab("Perent change over three generations") + 
+  scale_fill_brewer(element_blank(), palette="Dark2") +
+  theme(legend.position="none") + 
+  geom_text(aes(label=lab), data=text.df, colour=grey(0.5), nudge_x=-0.1, 
+            nudge_y=4, size=2.8) + 
+  ylim(-100,105) + 
+  geom_label(data=lab.df, aes(label=duName), nudge_x=-0.4, 
+             label.padding = unit(0.55, "lines"),  
+             fill="white", label.size=0, size=3)
+
+
+
+
+#=============================================================================
+# Plot time series with  percent change: type of sigma prior
+#=============================================================================
+
+p4 <- ggplot(du.df.long, aes(Year,logAbd)) + geom_point() + 
+  geom_segment(x= calc.year - yrs.window, y = median(run1$samples$Fit_Start),
+               xend=calc.year, yend = median(run1$samples$Fit_End), 
+               colour=brewer.pal(n = 8, name = "Dark2")[2], size=1.5) + 
+  geom_segment(x= calc.year - yrs.window, y = median(run3$samples$Fit_Start),
+               xend=calc.year, yend = median(run3$samples$Fit_End), 
+               colour=brewer.pal(n = 8, name = "Dark2")[1], size=1.5) + 
+  ggtitle("Time-series of log(abundances)", 
+          "with linear declines over most recent three 
+          generations for models with 
+          exponential priors on residual 
+          sigma and inverse gamma priors 
+          on residual variance") + 
+  ylab("Log(abundances)") + 
+  xlim(max(du.df.long$Year) - yrs.window, max(du.df.long$Year))
+
+grid.arrange(p3, p4, nrow=1)
+
+
+```
+
+### (3) Sensitivty to SD (sigma) of normal priors on slope and Y-intercept
+
+Sensitivity of declines estimates were further evaluate to three different SDs for normally distributed priors on slope and Y-intercept, representing generically weakly informative priors (sigma = 1), weakly informative priors (sigma =10), and a moderate value between those (sigma = 2.5) as applied in rstanarm (described by Gelman, <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations#scaling>).
+
+In this case, the slightly more informative priors (sigma=1) had a flatter slope (less severe decline) that was closer to the prior mean of zero. The weaker priors, sigma = 2.5 and sigma = 10, gave similar posterior estimates for decline rates.
+
+
+```{r coefPriorSigma, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Run models with various prior_sigma values:
+run4 <- run.stan(du.label=stk, du.df=du.df, yrs.window=yrs.window, 
+                 standardize.data = TRUE,  
+                 scenario.name = "Standardized-PriorSigma1",
+                 prior_sigma_type = "exp",  prior_sigma = 1, mcmc.plot = FALSE)
+
+run5 <- run.stan(du.label=stk, du.df=du.df, yrs.window=yrs.window, 
+                 standardize.data = TRUE,  
+                 scenario.name = "Standardized-PriorSigma10",
+                 prior_sigma_type = "exp",  prior_sigma = 10, mcmc.plot = FALSE)
+
+run4.df <- data.frame(Value=run4$samples$Perc_Change, PriorSigma=1, 
+                      std.data=1, VarPrior="Exp")
+run5.df <- data.frame(Value=run5$samples$Perc_Change, PriorSigma=10, 
+                      std.data=1, VarPrior="Exp")
+
+runSigPrior.df <- run3.df %>% bind_rows(run4.df) %>% 
+  bind_rows(run5.df)
+
+#=============================================================================
+# Plot posterior estimates of percent change: sigma on slope on yi priors
+#=============================================================================
+text.df <- data.frame(PriorSigma=c(rep(2.5,3),rep(1,3), rep(10,3)), 
+                      Value=rep(c(-70, -50,-30),3), 
+                      lab=c(round(run3$probdecl, 1)[,2], 
+                            round(run4$probdecl, 1)[,2],
+                            round(run5$probdecl, 1)[,2]))
+lab.df <- data.frame(Value=30, PriorSigma=as.factor(1), duName=du.df$DU[1])
+
+p5 <- ggplot(runSigPrior.df, (aes(x=as.factor(PriorSigma), y=Value, 
+                                  fill = as.factor(PriorSigma)))) + 
+  # geom_hline(yintercept=-30, linetype="dashed", colour="yellow") + 
+  # geom_hline(yintercept=-50, linetype="dashed", colour="orange") + 
+  # geom_hline(yintercept=-70, linetype="dashed", colour="red") +  
+  geom_hline(yintercept=-30, linetype="dashed", colour="light grey") + 
+  geom_hline(yintercept=-50, linetype="dashed", colour="dark grey") + 
+  geom_hline(yintercept=-70, linetype="dashed", colour="black") +  
+  geom_violin(alpha=0.3, trim=FALSE) + 
+  geom_boxplot(width=0.1) +
+  ggtitle("Posterior distributions of % change", 
+          "for various sigma values on slope and y-i 
+          priors (and probabitlity below 
+          thresholds)") +
+  theme_minimal() + 
+  xlab(element_blank()) + 
+  ylab("Perent change over three generations") + 
+  theme(legend.position="none") +
+  scale_fill_brewer(element_blank(), palette="Dark2") +
+  scale_x_discrete(labels=c("1"="Sigma=1","2.5"="Sigma=2.5","10"="Sigma=10")) + 
+  geom_text(aes(label=lab), data=text.df, colour=grey(0.5), nudge_x=-0.1, 
+            nudge_y=4, size=2.8) + 
+  ylim(-100,30) + 
+  geom_label(data=lab.df, aes(label=duName), nudge_x=-0.4, 
+             label.padding = unit(0.55, "lines"),  
+             fill="white", label.size=0, size=3)
+
+
+  
+#=============================================================================
+# Plot time series with  percent change: sigma on slope on yi priors
+#=============================================================================
+
+p6 <- ggplot(du.df.long, aes(Year,logAbd)) + geom_point() + 
+  geom_segment(x= calc.year - yrs.window, y = median(run3$samples$Fit_Start),
+               xend=calc.year, yend = median(run3$samples$Fit_End), 
+               colour=brewer.pal(n = 8, name = "Dark2")[2], size=1.5) + 
+  geom_segment(x= calc.year - yrs.window, y = median(run4$samples$Fit_Start),
+               xend=calc.year, yend = median(run4$samples$Fit_End), 
+               colour=brewer.pal(n = 8, name = "Dark2")[1], size=1.5) + 
+  geom_segment(x= calc.year - yrs.window, y = median(run5$samples$Fit_Start),
+               xend=calc.year, yend = median(run5$samples$Fit_End), 
+               colour=brewer.pal(n = 8, name = "Dark2")[3], size=1.5) + 
+  ggtitle("Time-series of log(abundances)", 
+          "with linear declines over most recent three 
+          generations for models with the various 
+          sigmas on normal priors on slope and 
+          y-intercept parameters") + 
+  ylab("Log(abundances)") + xlim(max(du.df.long$Year) - yrs.window, 
+                                 max(du.df.long$Year))
+
+
+grid.arrange(p5,p6,nrow=1)
+
+# library(knitr)
+# kable(round(run1$probdecl, digits=1))
+
+```
+

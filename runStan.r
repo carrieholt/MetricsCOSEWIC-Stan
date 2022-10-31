@@ -126,15 +126,18 @@ run.stan <- function(du.label,du.df, yrs.window,
   #                  chains = 6,  control = list(adapt_delta = 0.95))
   
   if(prior_sigma_type=="exp"){
-    if(!H0) stan_fit <- stan(file = 'linear-exp.stan', data = data, iter = 10000,
-                     chains = 6, thin =10,  control = list(adapt_delta = 0.95))
-    if(H0) stan_fit <- stan(file = 'linear-exp-H0.stan', data = data, iter = 10000,
-                     chains = 6, thin =10,  control = list(adapt_delta = 0.95))
+    if(!H0) stan_fit <- stan(file = 'linear-exp.stan', data = data, 
+                             iter = 10000, chains = 4, thin =10,  
+                             control = list(adapt_delta = 0.95), refresh = 0)
+    if(H0) stan_fit <- stan(file = 'linear-exp-H0.stan', data = data, 
+                            iter = 10000, chains = 4, thin =10,  
+                            control = list(adapt_delta = 0.95), refresh = 0)
   }
   
   if(prior_sigma_type=="invgamma"){
     stan_fit <- stan(file = 'linear-invgamma.stan', data = data, iter = 10000,
-                     chains = 6, thin =10,  control = list(adapt_delta = 0.95))
+                     chains = 4, thin =10,  control = list(adapt_delta = 0.95), 
+                     refresh = 0)
   }
   
   #==============================================================================
@@ -295,7 +298,7 @@ run.stan <- function(du.label,du.df, yrs.window,
       
       # Get posterior predicted values for ndraws
       pp <- posterior[,grepl("logAbd_Pred", colnames(posterior))]
-      ndraws <- 40
+      ndraws <- 200
       pp <- data.frame(pp) %>% sample_n(ndraws)
       pp <- data.frame(t(pp))
       pp$obs <- logAbd_obs
@@ -352,7 +355,8 @@ run.stan <- function(du.label,du.df, yrs.window,
       ggsave("trace_plot.pdf", p3, path=out.dir)
       ggsave("posterior_predictive_check.pdf", p4, path=out.dir)
       ggsave("prior_predictive_check.pdf", p5, path=out.dir)
-      
+      ggsave("posterior_predictive_check.png", p4, path=out.dir)
+      ggsave("prior_predictive_check.png", p5, path=out.dir)
     }# End of mcmc.plots
     
     write.csv(mcmc.samples,file=paste(out.dir,"/mcmc_samples.csv",sep=""))
