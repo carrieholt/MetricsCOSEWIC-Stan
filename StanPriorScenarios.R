@@ -51,7 +51,7 @@ calc.year <- 2017
 # where posteriors were sensitive to choice of prior (i.e., posteriors from 
 # previous implementation of RStanarm with informative priors differed from 
 # those when we used the diffuse priors described below)
-stk <- "Stock3"#"Stock2"##"Stock18"
+stk <- "Stock18"#"Stock2"##"Stock18"
 du.label <- stk
 du.df.long <- du.df.long %>% filter(DU==stk) %>% mutate(logAbd=log(Abd)) 
 
@@ -364,7 +364,10 @@ print(tabledf)
 
 
 p.all <- grid.arrange(p1,p2,p3,p4,p5,p6, nrow=3)
-ggsave(file=paste(stk, "/PriorSens_", du.df$DU[1],".pdf", sep=""), plot=p.all, width=8, height=11)
+ggsave(file=paste(stk, "/PriorSens_", du.df$DU[1],".pdf", sep=""), 
+       plot=p.all, width=8, height=11)
+ggsave(file=paste(stk, "/PriorSens_", du.df$DU[1],".png", sep=""), 
+       plot=p.all, width=8, height=11)
 
 #===============================================================================
 # Run JAGS and MLE through MetricsCOSEWIC package for the same stock, stk
@@ -469,6 +472,7 @@ p7 <- ggplot(MethodsCompareDF, aes(x=as.factor(method), y=Value,
              fill="white", label.size=0, size=4)
 
 ggsave(file=paste(stk,"/MethodSens_", du.df$DU[1],".pdf", sep=""), plot=p7, width=5, height=5)
+ggsave(file=paste(stk,"/MethodSens_", du.df$DU[1],".png", sep=""), plot=p7, width=5, height=5)
 
 
 #stock 2

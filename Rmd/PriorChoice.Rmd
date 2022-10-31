@@ -50,7 +50,7 @@ Within the Metrics-COSWEIC R package, the original priors on the slope, intercep
 
 ### Sensitivity to estimation platform
 
-First, for an example stock, estimates of decline rates from the Metrics-COSEWIC package using MLE, Jags, and rstanarm estimation methods were compared against those coded in stan directly using the same priors, with one exception. We applied a prior on the residual variance that was inverse gamma distributed with scale and rate parameters equal to 0.1 instead of 0.0001, which has a higher probability density at plausible sigma values, in the range of 0.1-1.5. See <https://github.com/carrieholt/MetricsCOSEWIC-Stan/blob/main/Rmd/InvGamma.Rmd>.
+First, for an example stock, estimates of decline rates from the Metrics-COSEWIC package using MLE, Jags, and rstanarm estimation methods were compared against those coded in stan directly using the same priors, with one exception. We applied a prior on the residual variance that was inverse gamma distributed with scale and rate parameters equal to 0.1 instead of 0.0001, which has a higher probability density at plausible sigma values, in the range of 0.1-1.5. See <https://carrieholt.github.io/InvGamma.html>.
 
 The data for this example are for Fraser River Sockeye Salmon and are available from the Metric-COSEWIC package. Here we've chosen stock 18, an example for which decline estimates varied among estimation methods in preliminary analyses.
 
