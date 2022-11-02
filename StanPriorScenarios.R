@@ -200,7 +200,32 @@ p1 <- ggplot(runStd.df, (aes(x=as.factor(std.data), y=Value,
                               fill="white", label.size=0, size=3)
 
   
+p1.cum <- ggplot(runStd.df, (aes(Value, colour=as.factor(std.data)))) + 
+  stat_ecdf(geom = "step", pad = TRUE, size = 2) + 
+  labs(title=element_blank(), y = "Probability", 
+       x="Percent change") +
+  scale_colour_brewer(element_blank(), palette="Dark2", labels = c("Unstandardized", "Standardized")) + 
+  xlim(-100,20) +
+  geom_vline(xintercept=-30, linetype="dashed", colour="light grey") + 
+  geom_vline(xintercept=-50, linetype="dashed", colour="dark grey") + 
+  geom_vline(xintercept=-70, linetype="dashed", colour="black")  +
+  geom_hline(yintercept= run1$probdecl[3,"ProbDecl"]/100, linetype="solid", 
+             colour = brewer.pal(3, "Dark2")[1], size = 1) + 
+  geom_hline(yintercept= run1$probdecl[2,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[1], size = 1) + 
+  geom_hline(yintercept= run1$probdecl[1,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[1], size = 1) +  
+  geom_hline(yintercept= run2$probdecl[3,"ProbDecl"]/100, linetype="solid", 
+           colour = brewer.pal(3, "Dark2")[2], size = 1) + 
+  geom_hline(yintercept= run2$probdecl[2,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[2], size = 1) + 
+  geom_hline(yintercept= run2$probdecl[1,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[2], size = 1)  +
+  theme(legend.position="bottom")
 
+# Could add transparency to horizontal lines:
+#https://stackoverflow.com/questions/55537556/how-to-get-alpha-value-of-a-hexadecimal-color-in-r
+#https://www.rdocumentation.org/packages/GISTools/versions/0.7-4/topics/Create%20Transparency
 
 #=============================================================================
 # Plot time series with  percent change: standardization of data
@@ -265,6 +290,28 @@ p3 <- ggplot(runSigType.df, (aes(x=as.factor(VarPrior), y=Value,
              fill="white", label.size=0, size=3)
 
 
+p3.cum <- ggplot(runSigType.df, (aes(Value, colour=as.factor(VarPrior)))) + 
+  stat_ecdf(geom = "step", pad = TRUE, size = 2) + 
+  labs(title=element_blank(), y = element_blank(), 
+       x="Percent change") +
+  scale_colour_brewer(element_blank(), palette="Dark2", labels = c("Exp", "InvGamma")) + 
+  xlim(-100,20) +
+  geom_vline(xintercept=-30, linetype="dashed", colour="light grey") + 
+  geom_vline(xintercept=-50, linetype="dashed", colour="dark grey") + 
+  geom_vline(xintercept=-70, linetype="dashed", colour="black")  +
+  geom_hline(yintercept= run1$probdecl[3,"ProbDecl"]/100, linetype="solid", 
+             colour = brewer.pal(3, "Dark2")[2], size = 1) + 
+  geom_hline(yintercept= run1$probdecl[2,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[2], size = 1) + 
+  geom_hline(yintercept= run1$probdecl[1,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[2], size = 1) +  
+  geom_hline(yintercept= run3$probdecl[3,"ProbDecl"]/100, linetype="solid", 
+             colour = brewer.pal(3, "Dark2")[1], size = 1) + 
+  geom_hline(yintercept= run3$probdecl[2,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[1], size = 1) + 
+  geom_hline(yintercept= run3$probdecl[1,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[1], size = 1)   +
+  theme(legend.position="bottom")
 
 
 #=============================================================================
@@ -330,6 +377,35 @@ p5 <- ggplot(runSigPrior.df, (aes(x=as.factor(PriorSigma), y=Value,
              label.padding = unit(0.55, "lines"),  
              fill="white", label.size=0, size=3)
 
+p5.cum <- ggplot(runSigPrior.df, (aes(Value, colour=as.factor(PriorSigma)))) + 
+  stat_ecdf(geom = "step", pad = TRUE, size = 2) + 
+  labs(title=element_blank() y = element_blank(), 
+       x="Percent change") +
+  scale_colour_brewer(element_blank(), palette="Dark2", labels = 
+                        c("1"="Sigma=1","2.5"="Sigma=2.5","10"="Sigma=10")) + 
+  xlim(-100,20) +
+  geom_vline(xintercept=-30, linetype="dashed", colour="light grey") + 
+  geom_vline(xintercept=-50, linetype="dashed", colour="dark grey") + 
+  geom_vline(xintercept=-70, linetype="dashed", colour="black")  +
+  geom_hline(yintercept= run1$probdecl[3,"ProbDecl"]/100, linetype="solid", 
+             colour = brewer.pal(3, "Dark2")[2], size = 1) + 
+  geom_hline(yintercept= run1$probdecl[2,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[2], size = 1) + 
+  geom_hline(yintercept= run1$probdecl[1,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[2], size = 1) +  
+  geom_hline(yintercept= run4$probdecl[3,"ProbDecl"]/100, linetype="solid", 
+             colour = brewer.pal(3, "Dark2")[1], size = 1) + 
+  geom_hline(yintercept= run4$probdecl[2,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[1], size = 1) + 
+  geom_hline(yintercept= run4$probdecl[1,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[1], size = 1) +
+  geom_hline(yintercept= run5$probdecl[3,"ProbDecl"]/100, linetype="solid", 
+             colour = brewer.pal(3, "Dark2")[3], size = 1) + 
+  geom_hline(yintercept= run5$probdecl[2,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[3], size = 1) + 
+  geom_hline(yintercept= run5$probdecl[1,"ProbDecl"]/100, linetype="solid", colour = 
+               brewer.pal(3, "Dark2")[3], size = 1)  +
+  theme(legend.position="bottom")
 
   
 #=============================================================================
@@ -368,6 +444,12 @@ ggsave(file=paste(stk, "/PriorSens_", du.df$DU[1],".pdf", sep=""),
        plot=p.all, width=8, height=11)
 ggsave(file=paste(stk, "/PriorSens_", du.df$DU[1],".png", sep=""), 
        plot=p.all, width=8, height=11)
+
+p.cum.all <- grid.arrange(p1.cum, p3.cum, p5.cum, nrow=1)
+ggsave(file=paste(stk, "/PriorSensCumulative_", du.df$DU[1],".pdf", sep=""), 
+       plot=p.cum.all, width=8, height=8)
+ggsave(file=paste(stk, "/PriorSensCumulative_", du.df$DU[1],".png", sep=""), 
+       plot=p.cum.all, width=8, height=8)
 
 #===============================================================================
 # Run JAGS and MLE through MetricsCOSEWIC package for the same stock, stk
