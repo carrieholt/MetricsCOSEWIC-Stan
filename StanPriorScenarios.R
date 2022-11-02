@@ -379,7 +379,7 @@ p5 <- ggplot(runSigPrior.df, (aes(x=as.factor(PriorSigma), y=Value,
 
 p5.cum <- ggplot(runSigPrior.df, (aes(Value, colour=as.factor(PriorSigma)))) + 
   stat_ecdf(geom = "step", pad = TRUE, size = 2) + 
-  labs(title=element_blank() y = element_blank(), 
+  labs(title=element_blank(), y = element_blank(), 
        x="Percent change") +
   scale_colour_brewer(element_blank(), palette="Dark2", labels = 
                         c("1"="Sigma=1","2.5"="Sigma=2.5","10"="Sigma=10")) + 
@@ -449,7 +449,7 @@ p.cum.all <- grid.arrange(p1.cum, p3.cum, p5.cum, nrow=1)
 ggsave(file=paste(stk, "/PriorSensCumulative_", du.df$DU[1],".pdf", sep=""), 
        plot=p.cum.all, width=8, height=8)
 ggsave(file=paste(stk, "/PriorSensCumulative_", du.df$DU[1],".png", sep=""), 
-       plot=p.cum.all, width=8, height=8)
+       plot=p.cum.all, width=11, height=6)
 
 #===============================================================================
 # Run JAGS and MLE through MetricsCOSEWIC package for the same stock, stk
