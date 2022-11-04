@@ -1,7 +1,7 @@
 ---
 title: "Prior  Choice"
 author: "Carrie Holt"
-date: "2022-10-31"
+date: "2022-11-4"
 output:
   html_document: default
   pdf_document: default
@@ -359,7 +359,7 @@ grid.arrange(p3, p4, nrow=1)
 
 ### (3) Sensitivty to SD (sigma) of normal priors on slope and Y-intercept
 
-Sensitivity of declines estimates were further evaluate to three different SDs for normally distributed priors on slope and Y-intercept, representing generically weakly informative priors (sigma = 1), weakly informative priors (sigma =10), and a moderate value between those (sigma = 2.5) as applied in rstanarm (described by Gelman, <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations#scaling>).
+Sensitivity of declines estimates were further evaluated at three SDs for the normally distributed priors on slope and Y-intercept, representing generic weakly informative priors (sigma = 1), weakly informative priors (sigma =10) (both described here <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations#5-levels-of-priors>), and a moderate value between those (sigma = 2.5) as applied in rstanarm (described by Gelman, <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations#scaling>).
 
 In this case, the slightly more informative priors (sigma=1) had a flatter slope (less severe decline) that was closer to the prior mean of zero. The weaker priors, sigma = 2.5 and sigma = 10, gave similar posterior estimates for decline rates.
 
