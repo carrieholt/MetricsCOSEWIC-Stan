@@ -1,7 +1,7 @@
 #==============================================================================
 # Code to run stan code over scenarios with different priors
 # Created by: Carrie Holt
-# Date last modified: 14 Oct 2022
+# Date last modified: 6 Jan 2023
 #==============================================================================
 
 
@@ -44,6 +44,9 @@ standardize.data <- TRUE
 du.df.long <- SR_Sample %>% select(Stock,Year,Spn) %>% 
   rename(DU = Stock, Abd = Spn)
 gen <- 4
+
+# Decide the window of years over which to calculate trends, and the year at  
+# which to calculate it (final or calc.year)
 yrs.window <- (3 * gen) +1
 calc.year <- 2017
 
@@ -51,14 +54,14 @@ calc.year <- 2017
 # where posteriors were sensitive to choice of prior (i.e., posteriors from 
 # previous implementation of RStanarm with informative priors differed from 
 # those when we used the diffuse priors described below)
-stk <- "Stock18"#"Stock2"##"Stock18"
+stk <- "Stock3"#"Stock18"#"Stock2"##"Stock18"
 du.label <- stk
 du.df.long <- du.df.long %>% filter(DU==stk) %>% mutate(logAbd=log(Abd)) 
 
-# Add an NA 
+# Add an NA (for checking)
 #du.df.long <- du.df.long %>% mutate(logAbd = replace(logAbd, Year==2008, NA))
 
-# Shorten data set to years used
+# Shorten data set to years used for decline calculations
 du.df <- du.df.long %>% filter(Year > (calc.year - yrs.window) & 
                                  Year <= calc.year)
 
@@ -387,11 +390,11 @@ p5.cum <- ggplot(runSigPrior.df, (aes(Value, colour=as.factor(PriorSigma)))) +
   geom_vline(xintercept=-30, linetype="dashed", colour="light grey") + 
   geom_vline(xintercept=-50, linetype="dashed", colour="dark grey") + 
   geom_vline(xintercept=-70, linetype="dashed", colour="black")  +
-  geom_hline(yintercept= run1$probdecl[3,"ProbDecl"]/100, linetype="solid", 
+  geom_hline(yintercept= run3$probdecl[3,"ProbDecl"]/100, linetype="solid", 
              colour = brewer.pal(3, "Dark2")[2], size = 1) + 
-  geom_hline(yintercept= run1$probdecl[2,"ProbDecl"]/100, linetype="solid", colour = 
+  geom_hline(yintercept= run3$probdecl[2,"ProbDecl"]/100, linetype="solid", colour = 
                brewer.pal(3, "Dark2")[2], size = 1) + 
-  geom_hline(yintercept= run1$probdecl[1,"ProbDecl"]/100, linetype="solid", colour = 
+  geom_hline(yintercept= run3$probdecl[1,"ProbDecl"]/100, linetype="solid", colour = 
                brewer.pal(3, "Dark2")[2], size = 1) +  
   geom_hline(yintercept= run4$probdecl[3,"ProbDecl"]/100, linetype="solid", 
              colour = brewer.pal(3, "Dark2")[1], size = 1) + 
@@ -438,6 +441,9 @@ tabledf <- data.frame(Threshold = c(-70,-50,-30),
 
 print(tabledf)
 
+#=============================================================================
+# save/print plots
+#=============================================================================
 
 p.all <- grid.arrange(p1,p2,p3,p4,p5,p6, nrow=3)
 ggsave(file=paste(stk, "/PriorSens_", du.df$DU[1],".pdf", sep=""), 
@@ -446,10 +452,10 @@ ggsave(file=paste(stk, "/PriorSens_", du.df$DU[1],".png", sep=""),
        plot=p.all, width=8, height=11)
 
 p.cum.all <- grid.arrange(p1.cum, p3.cum, p5.cum, nrow=1)
-ggsave(file=paste(stk, "/PriorSensCumulative_", du.df$DU[1],".pdf", sep=""), 
-       plot=p.cum.all, width=8, height=8)
-ggsave(file=paste(stk, "/PriorSensCumulative_", du.df$DU[1],".png", sep=""), 
-       plot=p.cum.all, width=11, height=6)
+ggsave (file = paste(stk, "/PriorSensCumulative_", du.df$DU[1],".pdf", sep=""), 
+       plot = p.cum.all, width=8, height=8)
+ggsave (file = paste(stk, "/PriorSensCumulative_", du.df$DU[1],".png", sep=""), 
+       plot = p.cum.all, width=11, height=6)
 
 #===============================================================================
 # Run JAGS and MLE through MetricsCOSEWIC package for the same stock, stk
