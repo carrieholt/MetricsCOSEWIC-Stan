@@ -18,7 +18,7 @@ library(gridExtra)
 #library(shinystan)
 library(bridgesampling)
 library(forcats)
-install_github("SOLV-Code/MetricsCOSEWIC", dependencies = TRUE,
+install_github("Pacific-salmon-assess/MetricsCOSEWIC", dependencies = TRUE,
                build_vignettes = FALSE)
 library(MetricsCOSEWIC)
 source("runStan.r")
@@ -52,7 +52,7 @@ yrs.window <- (3 * gen) +1
 calc.year <- 2017
 
 # Choose a stock
-stk <- "Stock2"#"Stock18"#"Stock2"##"Stock3"
+stk <- "Stock3"#"Stock18"#"Stock2"##"Stock3"
 du.label <- stk
 du.df.long <- du.df.long %>% filter(DU==stk) %>% mutate(logAbd=log(Abd)) 
 
@@ -91,22 +91,29 @@ if(y.up >= 10) {
   tick.marks <- c(-90, -70, -50, -30, -10, tick.marks)
 } 
 if(y.up < 10) tick.marks <- c(-90, -70, -50, -30, -10)
+if(y.up < 10) axis.text.size <- 18
+if(y.up >= 10) axis.text.size <- 12
+
 
 # Text for labeling probabilities at -70%, -50% and -30% declines on plot
-text.df <- data.frame(x = c(-100,-100,-100), 
-                      Value = round(stan.out$probdecl, 0)[,2]/100, 
-                      lab = round(stan.out$probdecl, 0)[,2]/100 )
+text.df <- data.frame(x = c(-95,-95,-95), 
+                      Value = round(stan.out$probdecl, 0)[,2]/100+0.02, 
+                      lab = round(stan.out$probdecl, 0)[,2]/100,
+                      col = brewer.pal(3, "Dark2")[c(2,3,1)])
 
 # Plot cumulative distribution
 gg.base1 <- ggplot(out.df, (aes(Value))) +#, colour=as.factor(PriorSigma)))) + 
   stat_ecdf(geom = "step", pad = TRUE, size = 2, colour=grey(0.4)) + 
   labs(title= "Cumulative probability", y = element_blank(), 
        x="Percent change") +
+  theme(axis.text=element_text(size=18), axis.title=element_text(size=20), plot.title = element_text(size=24)) +
   scale_colour_brewer(element_blank(), palette="Dark2") + 
   coord_cartesian(xlim = c(-100,y.up) )+
   scale_x_continuous(breaks = tick.marks) +
-  geom_text(aes(x= x, y = Value, label=lab), data=text.df,  colour=grey(0.5), nudge_x=0, 
-            nudge_y=0.02, size=4) + 
+  # geom_text(aes(x= x, y = Value, label=lab), data=text.df,  colour=grey(0.5), nudge_x=0, 
+  #           nudge_y=0.02, size=8) + 
+  geom_text(aes(x= x, y = Value, label=lab, colour = col), data=text.df, nudge_x=0, 
+            nudge_y=0.02, size=8) + 
   geom_vline(xintercept=-30, linetype="dashed", 
              colour=brewer.pal(3, "Dark2")[1]) + 
   geom_vline(xintercept=-50, linetype="dashed", 
@@ -119,24 +126,28 @@ gg.base1 <- ggplot(out.df, (aes(Value))) +#, colour=as.factor(PriorSigma)))) +
              colour = brewer.pal(3, "Dark2")[2], size = 1) + 
   geom_hline(yintercept= stan.out$probdecl[1,"ProbDecl"]/100, linetype="solid", 
              colour = brewer.pal(3, "Dark2")[3], size = 1) +  
-  theme(legend.position="bottom")
-
+  theme(legend.position="none")
+ 
 # Plot three probability densities for -70, -50, and -30 thresholds
-gg.prob.a <- ggplot(out.df, (aes(Value))) ++ 
+gg.prob.a <- ggplot(out.df, (aes(Value))) + 
   geom_density(colour = grey(0.4), size = 1, fill = brewer.pal(3, "Dark2")[1]) +
   coord_cartesian(xlim = c(-100,y.up) )+
   scale_x_continuous(breaks = tick.marks) +
-  scale_y_continuous(breaks = NULL) 
+  scale_y_continuous(breaks = NULL) + 
+  theme(axis.text=element_text(size=axis.text.size), axis.title=element_text(size=22), plot.title = element_text(size=24))
+  
 p <- ggplot_build(gg.prob.a)$data[[1]]
 gg.base2a <- gg.prob.a + geom_area(data= subset (p, x > -30), aes(x=x, y=y), 
                                    fill= "light grey") +
-  labs(title= "Probability density", x = element_blank(), y = element_blank())  
+  labs(title= "Prob. density", x = element_blank(), y = element_blank())  
 
 gg.prob.b <- ggplot(out.df, (aes(Value))) + 
   geom_density(colour = grey(0.4), size = 1, fill = brewer.pal(3, "Dark2")[2]) +
   coord_cartesian(xlim = c(-100,y.up) ) +
   scale_x_continuous(breaks = tick.marks) +
-  scale_y_continuous(breaks = NULL)
+  scale_y_continuous(breaks = NULL) +
+  theme(axis.text=element_text(size=axis.text.size), axis.title=element_text(size=22))
+
 p <- ggplot_build(gg.prob.b)$data[[1]]
 gg.base2b <- gg.prob.b + geom_area(data= subset (p, x > -50), aes(x=x, y=y), 
                                    fill= "light grey") +
@@ -146,7 +157,9 @@ gg.prob.c <- ggplot(out.df, (aes(Value))) +
   geom_density(colour = grey(0.4), size = 1, fill = brewer.pal(3, "Dark2")[3]) +
   coord_cartesian(xlim = c(-100,y.up) ) +
   scale_x_continuous(breaks = tick.marks) +
-  scale_y_continuous(breaks = NULL)
+  scale_y_continuous(breaks = NULL) +
+  theme(axis.text=element_text(size=axis.text.size), axis.title=element_text(size=22))
+
 p <- ggplot_build(gg.prob.c)$data[[1]]
 gg.base2c <- gg.prob.c + geom_area(data= subset (p, x > -70), aes(x=x, y=y), 
                                    fill= "light grey") +
@@ -159,8 +172,8 @@ gg.base <- grid.arrange(grobs = g1, widths = c(2,1),
                         layout_matrix = rbind(c(1,2), c(1,3), c(1,4)))
 
 
-ggsave (file = paste (stk, "/ProbPlots_", du.df$DU[1],".pdf", sep=""), 
-        plot=gg.base, width=8, height=8)
+# ggsave (file = paste (stk, "/ProbPlots_", du.df$DU[1],".pdf", sep=""), 
+#         plot=gg.base, width=8, height=8)
 ggsave (file = paste (stk, "/ProbPlots_", du.df$DU[1],".png", sep=""), 
         plot=gg.base, width=8, height=8)
 
