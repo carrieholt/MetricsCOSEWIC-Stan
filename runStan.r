@@ -230,8 +230,10 @@ run.stan <- function(du.label,du.df, yrs.window,
     if(year.scale) {
       yrs <-  0:(length(du.df$Year)-1)
       mcmc.samples <- mcmc.samples %>%
-        mutate(Fit_Start = int + slope * yrs[1] ) %>%
-        mutate(Fit_End = int + slope * yrs[yrs.window])
+        # mutate(Fit_Start = int + slope * yrs[1] ) %>%
+        # mutate(Fit_End = int + slope * yrs[yrs.window])
+        mutate(Fit_Start = int + slope * yrs[length(yrs) - yrs.window + 1] ) %>%
+        mutate(Fit_End = int + slope * yrs[length(yrs)])
     }
     
     # Identify any years with negative start years (only occurs if abundances are
