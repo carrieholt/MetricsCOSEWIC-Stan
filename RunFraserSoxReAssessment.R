@@ -22,6 +22,8 @@ install_github("Pacific-salmon-assess/MetricsCOSEWIC", dependencies = TRUE,
 library(MetricsCOSEWIC)
 source("runStan.r")
 
+# Add code to create results directories if they don't yet exist
+
 # Run script for Fraser Sockeye re-assssments
 data <- read.csv(here::here("data", "FraserSockeyeReAssessmentData.csv"))
 data <- data[,1:4] #Omit notes column
@@ -43,6 +45,17 @@ data.long <- pivot_longer(data, cols = c("Harrison..D.S..L", "Kamloops.ES",
 stk <- "Kamloops.ES"#""Harrison..D.S..L"#"Lillooet.Harrison.L"#"
 scenario.name <- "long-time-series" #"short-time-series"
 gen <- 4
+
+if (!file.exists(here::here(eval(stk))))  dir.create(here::here(eval(stk)))
+
+if (file.exists(here::here(eval(stk)))){
+  if (!file.exists(here::here(eval(stk), "long-time-series"))) {
+    dir.create(here::here(eval(stk), "long-times-eries"))
+  }
+  if (!file.exists(here::here(eval(stk), "short-time-series"))) {
+    dir.create(here::here(eval(stk), "short-times-eries"))
+  }
+}
 
 # Decide the window of years over which to calculate trends, and the year at  
 # which to calculate it (final or calc.year)
