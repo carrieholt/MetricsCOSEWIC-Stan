@@ -6,11 +6,19 @@
 
 
 
-run.stan <- function(du.label,du.df, yrs.window, 
-                     perc.change.bm = c(-30,-50,-70), calc.yr, 
-                     standardize.data = TRUE, scenario.name = "test", 
-                     path.results="", mcmc.plots = TRUE, 
-                     prior_sigma_type = "exp", prior_sigma=2.5, H0=FALSE){
+run.stan <- function(du.label,
+                     du.df, 
+                     yrs.window, 
+                     perc.change.bm = c(-30,-50,-70), 
+                     calc.yr, 
+                     standardize.data = TRUE, 
+                     scenario.name = "test", 
+                     path.results="", 
+                     mcmc.plots = TRUE, 
+                     prior_sigma_type = "exp", 
+                     prior_sigma=2.5, 
+                     H0=FALSE)
+{
                      # samples.out = TRUE, plot.pattern = TRUE, 
                      # plot.fitted = TRUE, plot.posteriors = TRUE, 
                      # plot.boxes  = TRUE){

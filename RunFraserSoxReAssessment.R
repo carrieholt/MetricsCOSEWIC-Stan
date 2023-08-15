@@ -17,8 +17,8 @@ library(gridExtra)
 #library(shinystan)
 library(bridgesampling)
 library(forcats)
-install_github("Pacific-salmon-assess/MetricsCOSEWIC", dependencies = TRUE,
-               build_vignettes = FALSE)
+# install_github("Pacific-salmon-assess/MetricsCOSEWIC", dependencies = TRUE,
+#                build_vignettes = FALSE)
 library(MetricsCOSEWIC)
 source("runStan.r")
 
@@ -59,7 +59,7 @@ if (file.exists(here::here(eval(stk)))){
 
 # Decide the window of years over which to calculate trends, and the year at  
 # which to calculate it (final or calc.year)
-yrs.window <- (3 * gen) +1
+yrs.window <- (3 * gen) + 1
 calc.year <- 2021
 du.df.long <- data.long %>% filter(DU==stk) 
 
