@@ -2,3 +2,15 @@
 .Rhistory
 .RData
 .Ruserdata
+data/FraserSockeyeReAssessment_Data.csv
+data/FraserSockeyeReAssessmentData.csv
+Kamloops-ES/long-time-series/convergenceRhat.csv
+Kamloops-ES/long-time-series/intercept_posterior.pdf
+Kamloops-ES/long-time-series/mcmc_samples.csv
+Kamloops-ES/long-time-series/posterior_predictive_check.pdf
+Kamloops-ES/long-time-series/posterior_predictive_check.png
+Kamloops-ES/long-time-series/prior_predictive_check.pdf
+Kamloops-ES/long-time-series/prior_predictive_check.png
+Kamloops-ES/long-time-series/prob_declines.pdf
+Kamloops-ES/long-time-series/slope_posterior.pdf
+Kamloops-ES/long-time-series/trace_plot.pdf
