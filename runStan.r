@@ -148,6 +148,7 @@ run.stan <- function(du.label,
                      refresh = 0)
   }
   
+  
   #==============================================================================
   # Pull out parameter estimates
   #==============================================================================
@@ -388,6 +389,7 @@ run.stan <- function(du.label,
   if(H0) out.list <- list(logML = logML)
   
   return(out.list)
+
 } #End of runStan
 
 

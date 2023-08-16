@@ -7,7 +7,7 @@ int<lower=0> N; // number of data items
 real logAbd[N]; // Y value
 //vector[N] logAbd_miss; // Y value
 int<lower=0, upper=1> logAbd_obs[N];  // missingness indicator for Y 
-vector[N] Year;   // X value
+vector [N] Year;   // X value
 real intercept_mean;
 real intercept_sig;
 //real Sig_Gam_Dist;
@@ -79,19 +79,25 @@ target += normal_lpdf( slope | slope_mean, slope_sig);
 
 generated quantities {
   vector[N] logAbd_Fit_out = intercept + Year * slope;  //Fitted values
-  real logAbd_Pred[N];  // predictions based on model with variability
-  for (i in 1:N) {
-    logAbd_Pred[i] = normal_rng(logAbd_Fit_out[i], sigma);
-  }
+  real logAbd_Pred [N]; // predictions based on model with variability
   
   real intercept_pp = normal_rng(intercept_mean, intercept_sig);
   real slope_pp = normal_rng(slope_mean, slope_sig);
   real sigma_pp = exponential_rng(exp_rate);
+  
   array[N] real logAbd_PriorPred = normal_rng(intercept_pp + slope_pp * Year, sigma_pp);
+  //real logAbd_PriorPred [N] = normal_rng(intercept_pp + slope_pp * Year, sigma_pp);
+  //real logAbd_PriorPred[N] = normal_rng(intercept_pp + slope_pp * Year, sigma_pp); // TESTING - removed array
+  
   //vector[N] logAbd_PriorPred;
+  
   // for (i in 1:N) {
   //  logAbd_PriorPred[i] = normal_rng(intercept_pp + slope_pp * Year);
   //}
+  
+  for (i in 1:N) {
+    logAbd_Pred[i] = normal_rng(logAbd_Fit_out[i], sigma);
+  }
 
 }
 

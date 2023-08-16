@@ -7,8 +7,21 @@
 # Package dependencies
 library(dplyr)
 library(tidyr)
-library(rstan)
+
 library(devtools)
+
+# Attempts to get Rtools to read binaries correctly
+# Sys.setenv(PATH = paste("C:\\Rtools\\bin", Sys.getenv("PATH"), sep=";"))
+# Sys.setenv(PATH = paste("C:\\Rtools\\mingw_64\\bin", Sys.getenv("PATH"), sep=";"))
+
+# RStan and Rtool compatibility issues:
+  # Requires restarting R for this case
+  # https://github.com/stan-dev/rstan/wiki/Configuring-C---Toolchain-for-Windows
+# install.packages("StanHeaders", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
+# install.packages("rstan", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
+library(StanHeaders)
+library(rstan)
+
 library(ggplot2)
 library(ggridges)
 library(bayesplot)
@@ -25,12 +38,23 @@ source("runStan.r")
 # Add code to create results directories if they don't yet exist
 
 # Run script for Fraser Sockeye re-assssments
-data <- read.csv(here::here("data", "FraserSockeyeReAssessmentData.csv"))
-data <- data[,1:4] #Omit notes column
-data.long <- pivot_longer(data, cols = c("Harrison..D.S..L", "Kamloops.ES", 
-                            "Lillooet.Harrison.L"), 
-             names_to = "DU", 
-             values_to= "Abd")
+# data <- read.csv(here::here("data", "FraserSockeyeReAssessmentData.csv"))
+# data <- data[,1:4] #Omit notes column
+# data.long <- pivot_longer(data, cols = c("Harrison..D.S..L", "Kamloops.ES",
+#                             "Lillooet.Harrison.L"),
+#              names_to = "DU",
+#              values_to= "Abd")
+
+# Using the different dataset.
+  # check for Na's in rawAbd
+  # and then replace rawAbd overtop of Abd
+  # no Na's in rawAbd
+data.other <- read.csv(here::here('data', 'FraserSockeyeReAssessment_Data.csv'))
+data.ol <- data.other[c("DU","Year","rawAbd")]
+names(data.ol)[names(data.ol)=="rawAbd"] <- "Abd"
+data.long <- data.ol
+
+
 
 # # Not needed if time-series are smoothed
 # # Replace zeros with half the min value observed....
@@ -42,7 +66,8 @@ data.long <- pivot_longer(data, cols = c("Harrison..D.S..L", "Kamloops.ES",
 #   add_row(data.long.NA) %>% select(-min)
 
 
-stk <- "Kamloops.ES"#""Harrison..D.S..L"#"Lillooet.Harrison.L"#"
+# stk <- "Kamloops.ES" #""Harrison..D.S..L"#"Lillooet.Harrison.L"#"
+stk <- "Kamloops-ES" # For _Data.csv
 scenario.name <- "long-time-series" #"short-time-series"
 gen <- 4
 
@@ -61,13 +86,16 @@ if (file.exists(here::here(eval(stk)))){
 # which to calculate it (final or calc.year)
 yrs.window <- (3 * gen) + 1
 calc.year <- 2021
-du.df.long <- data.long %>% filter(DU==stk) 
 
+du.df.long <- data.long %>% filter(DU==stk)
+# du.df.ol <- data.ol %>% filter(DU==stk.other) # Tor - names of DU's are different
+  # between the two samples datasets
 
 # Arithmetic smooth time-series (as in 2017 COSEWIC report on Fr sockeye) 
 du.df.long$Abd <- smoothSeries(du.df.long$Abd, gen=gen, filter.sides=1, 
                                log.transform = FALSE, out.exp = FALSE, 
                                na.rm=FALSE)
+
 
 du.df.long <- du.df.long %>% mutate(logAbd=log(Abd)) 
 
@@ -76,6 +104,7 @@ if(scenario.name == "short-time-series"){
   du.df <- du.df.long %>% filter(Year > (calc.year - yrs.window) &
                                    Year <= calc.year)
 }
+
 if(scenario.name == "long-time-series"){
   du.df <- du.df.long 
 }
@@ -86,13 +115,17 @@ if(scenario.name == "long-time-series"){
 # Run STAN with standardized data, exp prior on var, and 2.5 sigma priors on 
 # slope and yi (DEFAULT)
 
-stan.out <- run.stan(du.label=stk, du.df=du.df, yrs.window=yrs.window, 
+stan.out <- run.stan(du.label=stk, 
+                     du.df=du.df, 
+                     yrs.window=yrs.window, 
                      standardize.data = TRUE,  
                      scenario.name = scenario.name, 
                      prior_sigma_type = "exp")
 
-out.df <- data.frame(Value=stan.out$samples$Perc_Change, PriorSigma=2.5, 
-                     std.data=1, VarPrior="Exp")
+out.df <- data.frame(Value=stan.out$samples$Perc_Change, 
+                     PriorSigma=2.5, 
+                     std.data=1, 
+                     VarPrior="Exp")
 
 #=============================================================================
 # Plot cumulative distribution and probbabilty densities
